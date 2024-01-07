@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+      crossorigin="anonymous"
+    />
+    <script src="https://kit.fontawesome.com/cdfec94488.js" crossorigin="anonymous"></script>
+    <link rel="shortcut icon" href="favicon.png" type="image/x-icon" />
+    <title>Mask Detection</title>
+  </head>
+  <body>
+    <div
+      class="container-fluid Box1"
+      style="padding-left: 0px; padding-right: 0px"
+    >
+      <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+          <a class="navbar-brand" href="#"> Instant Mask Detection </a>
+          <a href="#">
+            <i class="fa-brands fa-github fa-2x" style="color:aliceblue;"></i>
+          </a>
+        </div>
+      </nav>
+      <div class="main">
+        <div style="color: white" class="text-box">
+          <h1>Mask Detection</h1>
+          <p>
+            Harnessing the capabilities of Machine Learning and Artificial
+            Intelligence to swiftly and accurately detect the presence of facial
+            masks
+          </p>
+        </div>
+        <div class="button-container">
+          <button type="button" class="btn btn-warning" onclick="init()">
+            Start
+          </button>
+          <button type="button" class="btn btn-danger" onclick="stop()">
+            Stop
+          </button>
+        </div>
+        <br />
+        <div id="webcam-container" class="border border-primary rounded"></div>
+        <div id="label-container" class="font-monospace"></div>
+      </div>
+        <footer class="py-3 my-4">
+          <p class="text-center text-muted">📦 Made by Himanshu Mohanty 👨‍💻</p>
+        </footer>
+    </div>
+
+    <!-- Script tags -->
+
+    <!-- Load TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script type="text/javascript">
+      // More API functions here:
+      // https://github.com/googlecreativelab/teachablemachine-community/tree/master/libraries/image
+
+      // the link to your model provided by Teachable Machine export panel
+      const URL = "https://teachablemachine.withgoogle.com/models/P0zfh1kak/";
+
+      let model, webcam, labelContainer, maxPredictions;
+
+      // Load the image model and setup the webcam
+      async function init() {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
+
+        // load the model and metadata
+        // Refer to tmImage.loadFromFiles() in the API to support files from a file picker
+        // or files from your local hard drive
+        // Note: the pose library adds "tmImage" object to your window (window.tmImage)
+        model = await tmImage.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
+
+        // Convenience function to setup a webcam
+        const flip = true; // whether to flip the webcam
+        webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
+        await webcam.setup(); // request access to the webcam
+        await webcam.play();
+        window.requestAnimationFrame(loop);
+
+        // append elements to the DOM
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        labelContainer = document.getElementById("label-container");
+        for (let i = 0; i < maxPredictions; i++) {
+          // and class labels
+          labelContainer.appendChild(document.createElement("div"));
+        }
+      }
+      //stop the webcam anc close the webcam-container and lable-container
+      async function stop() {
+        webcam.stop();
+        document.getElementById("webcam-container").remove();
+        document.getElementById("label-container").remove();
+      }
+
+      async function loop() {
+        webcam.update(); // update the webcam frame
+        await predict();
+        window.requestAnimationFrame(loop);
+      }
+
+      // run the webcam image through the image model
+      async function predict() {
+        // predict can take in an image, video, or canvas HTML element
+        const prediction = await model.predict(webcam.canvas);
+
+        // Find the index of the class with the highest probability
+        const maxProbabilityIndex = prediction.reduce(
+          (maxIndex, currentPrediction, currentIndex) =>
+            currentPrediction.probability > prediction[maxIndex].probability
+              ? currentIndex
+              : maxIndex,
+          0
+        );
+
+        // Display the appropriate message based on the highest probability class
+        const maxClassPrediction =
+          prediction[maxProbabilityIndex].className +
+          ": " +
+          prediction[maxProbabilityIndex].probability.toFixed(2);
+
+        if (maxProbabilityIndex === 0) {
+          labelContainer.innerHTML = "🎉 Thank you for wearing the mask! You're keeping everyone safe. 😷";
+        } else {
+          labelContainer.innerHTML =
+            "🚨 Oops! It looks like you're not wearing a mask. Please wear one to keep yourself and others safe. 😷";
+        }
+      }
+    </script>
+
+    <script src="script.js"></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+      crossorigin="anonymous"
+    ></script>
+  </body>
+</html>
